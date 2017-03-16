@@ -9,6 +9,8 @@ class Layer(object):
         self.bias = bias
         self.activation = function
         self.ac = Activation()
+        self.m = self.v = 0
+        self.mb = self.vb = 0
 
     def get_weights(self):
         return self.W
@@ -50,12 +52,35 @@ class Layer(object):
     def activation_gradient(self, z):
         return self.ac.gradient(z, self.activation)
 
-    def update_weights(self, alpha, reg, m):
-       self.regularize(reg, m)
-       self.W  = self.W - ((alpha)*(self.dw))
-       self.bias = self.bias - ((alpha)*(self.db))
-
+    def update_weights(self, lr, reg, m, beta1 = 0.9, beta2 = 0.999, method = 'momentum'):
+        self.regularize(reg, m)
+        if(method == 'adam'):
+          self.adam(beta1, beta2)
+        elif(method == 'momentum'):
+          self.momentum(0.7, lr)
+        elif(method == 'stochastic'):
+          self.stochastic(lr)
+        
     def regularize(self, reg, m):
         self.dw /= m
         self.db /= m
         self.dw += reg*self.W
+
+    def stochastic(self, alpha):
+        self.W  = self.W - ((alpha)*(self.dw))
+        self.bias = self.bias - ((alpha)*(self.db))
+
+    def adam(self, beta1, beta2):
+        eps = 1e-8
+        self.m = beta1*self.m + (1-beta1)*self.dw
+        self.v = beta2*self.v + (1-beta2)*(self.dw**2)
+        self.mb = beta1*self.mb + (1-beta1)*self.db
+        self.vb = beta2*self.vb + (1-beta2)*(self.db**2)
+        self.W += - ((alpha * self.m) / (np.sqrt(self.v)+eps))
+        self.bias += - ((alpha * self.mb) / (np.sqrt(self.vb)+eps))
+
+    def momentum(self, mue, lr):
+        self.v = mue * self.v - lr*self.dw
+        self.vb = mue * self.vb - lr*self.db
+        self.W += self.v
+        self.bias += self.vb

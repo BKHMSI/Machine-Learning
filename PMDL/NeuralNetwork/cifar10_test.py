@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib as plt
+import matplotlib.pyplot as plt
 from data_utils import load_CIFAR10
 from NeuralNetwork import ANN 
 from Preprocessing import Normalize
@@ -25,7 +25,7 @@ def evaluate(y_test_pred, y_test):
 
     index = np.arange(num_classes)
     bar_width = 0.5
-    plt.bar(index,histogram,0.5)
+    plt.bar(index,histogram,bar_width)
     plt.xlabel("Classes")
     plt.ylabel("% of Correctly Classified")
     plt.xticks(index+bar_width/2,classes)
@@ -62,17 +62,16 @@ X_test = normalize.norm_image(X_test)
 # Create Classifier
 classifier = ANN()
 classifier.add_input(X_train.shape[1])
-classifier.add_layer(800, 'relu')
-classifier.add_layer(700, 'relu')
-classifier.add_layer(600, 'relu')
-classifier.add_layer(500, 'relu')
+classifier.add_layer(1000, 'relu')
+classifier.add_layer(750, 'relu')
+classifier.add_layer(550, 'relu')
 classifier.add_layer(num_classes, 'sigmoid')
 classifier.summary()
 
 # Train classifier
 classifier.train(X_train, Y_train, 
-                reg = 1e-7, epochs = 50, batch_size = 50,
-                alpha = 1e-2, validation_split = 0.1, verbose = 1)
+                reg = 1e-3, epochs = 20, batch_size = 50,
+                alpha = 1e-2, update_method = 'stochastic', validation_split = 0.1)
 
 # Evaluate Testing Data 
 y_test_pred = classifier.predict(X_test)
