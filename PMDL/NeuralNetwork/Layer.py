@@ -57,7 +57,7 @@ class Layer(object):
         if(method == 'adam'):
           self.adam(beta1, beta2)
         elif(method == 'momentum'):
-          self.momentum(0.7, lr)
+          self.momentum(0.9, lr)
         elif(method == 'stochastic'):
           self.stochastic(lr)
         

@@ -64,14 +64,14 @@ classifier = ANN()
 classifier.add_input(X_train.shape[1])
 classifier.add_layer(1000, 'relu')
 classifier.add_layer(750, 'relu')
-classifier.add_layer(550, 'relu')
+classifier.add_layer(500, 'relu')
 classifier.add_layer(num_classes, 'sigmoid')
 classifier.summary()
 
 # Train classifier
 classifier.train(X_train, Y_train, 
-                reg = 1e-3, epochs = 20, batch_size = 50,
-                alpha = 1e-2, update_method = 'stochastic', validation_split = 0.1)
+                reg = 1e-2, epochs = 20, batch_size = 50,
+                lr = 1e-2, update_method = 'stochastic', validation_split = 0.1)
 
 # Evaluate Testing Data 
 y_test_pred = classifier.predict(X_test)

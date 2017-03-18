@@ -20,8 +20,8 @@ class Activation(object):
         gg = self.sigmoid(x)
         return gg  * (1 - gg)
 
-    def relu(self, x, alpha = 0):
-        return np.maximum(alpha*x,x)
+    def relu(self, x):
+        return np.maximum(0,x)
     
     def relu_gradient(self, x):
         return (x > 0)

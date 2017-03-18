@@ -92,7 +92,7 @@ class ANN(object):
         y_train = y[border:]
         return X_train, y_train, X_valid, y_valid
 
-    def train(self, X, y, reg = 0, epochs = 10, batch_size = 32, alpha = 0.01, 
+    def train(self, X, y, reg = 0, epochs = 10, batch_size = 32, lr = 0.01, 
               beta1 = 0.9, beta2 = 0.999, update_method = 'momentum', 
               validation_split = 0.1, verbose = 1):
 
@@ -128,7 +128,7 @@ class ANN(object):
                 self.backward_propagate(ytr, out)
                 # Update Weights
                 for layer in self.arch[1:]:
-                    layer.update_weights(alpha, reg, batch_size, update_method)
+                    layer.update_weights(lr, reg, batch_size, method=update_method)
 
     def predict(self, x):
         probs = self.feed_forward(x)
@@ -139,10 +139,6 @@ class ANN(object):
         y = np.argmax(Y,axis=1) 
         num_correct = np.sum(y_pred == y)
         return float(num_correct) / Y.shape[0]
-
-    def rotate_image(self, deg):
-        X_imgs = self.X_train.reshape
-
 
     def summary(self):
        print "\nNetwork Summary: "
