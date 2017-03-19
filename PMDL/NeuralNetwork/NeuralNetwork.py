@@ -11,10 +11,10 @@ class ANN(object):
         self.arch.append(Layer(0, inputdim, np.zeros(0), np.zeros(0), 'no'))
         self.prev = inputdim 
 
-    def add_layer(self, size, activation = 'relu'):
+    def add_layer(self, size, activation = 'relu', dropout = 1):
         w = self.init_weights(size, self.prev)
         b = self.init_weights(size, 1)
-        self.arch.append(Layer(len(self.arch), size, w, b, activation))
+        self.arch.append(Layer(len(self.arch), size, w, b, activation, dropout))
         self.prev = size 
     
     def init_weights(self, D, H):
@@ -49,7 +49,7 @@ class ANN(object):
             wd = (next_layer.get_weights().T).dot(delta)
 
             # (W(i+1).delta(i+1)) * f'(zi)
-            delta = wd * layer.activation_gradient(layer.get_inputs())
+            delta = (wd * layer.activation_gradient(layer.get_inputs())) * layer.get_dropout()
 
             # delta(i).x(i-1)'
             dwi = delta.dot(prev_layer.get_outputs().T) 
@@ -58,15 +58,16 @@ class ANN(object):
             layer.set_gradients(dwi,delta)
 
 
-    def feed_forward(self, X):
+    def feed_forward(self, X, training = False):
         """Feed-forward for one Batch: returns output of last layer"""
         num_layers = len(self.arch)
         a = X.T # transpose to make it features x number of examples
         self.arch[0].set_outputs(a) # store values of first output
         for i, layer in enumerate(self.arch[1:num_layers]):
             # f ( W.x + b )
+            layer.set_dropout()
             z = layer.get_weights().dot(a)+layer.get_bias()
-            a = layer.fire(z)
+            a = layer.fire(z) * layer.get_dropout(training)
             # save inputs and outputs of this layer for back propagation
             layer.set_inputs(z)
             layer.set_outputs(a)
@@ -79,10 +80,10 @@ class ANN(object):
             w = np.append(w,layer.get_weights().flatten())
         return w          
     
-    def get_batch(self, idx, batch_size):
+    def get_batch(self, idx, batch_size, X):
         start = idx*batch_size
         end = (idx+1)*batch_size
-        return self.Xtr[start:end], self.ytr[start:end]
+        return X[start:end], self.ytr[start:end]
 
     def split_data(self, split_ratio, X, y):
         border = int(X.shape[0]*split_ratio)
@@ -99,6 +100,8 @@ class ANN(object):
         self.Xtr, self.ytr, Xval, yval = self.split_data(validation_split,X,y)
         self.num_classes = np.unique(y).shape[0]
 
+        augment = ImageProcessing()
+        
         m = self.Xtr.shape[0] # of training examples
         n = self.Xtr.shape[1] # of features
         batches = m / batch_size
@@ -115,15 +118,18 @@ class ANN(object):
                 print "val_loss: ", vloss, " | val_acc: ", vacc
 
                 # Training Pass
-                probs = self.feed_forward(self.Xtr)
+                probs = self.feed_forward(self.Xtr,True)
                 tloss = self.cost_function(probs.T, self.ytr, reg, m)
                 tacc = self.accuracy(self.Xtr, self.ytr)
                 print "train_loss: ", tloss, " | train_acc: ",  tacc
 
+            option = np.random.randint(5)
+            X_aug = augment.augment_image(self.Xtr,option)
+
             for j in xrange(batches):
-                xtr, ytr = self.get_batch(j, batch_size) 
+                xtr, ytr = self.get_batch(j, batch_size, X_aug) 
                 # Feed Forward
-                out = self.feed_forward(xtr)
+                out = self.feed_forward(xtr,True)
                 # Backward Propagation 
                 self.backward_propagate(ytr, out)
                 # Update Weights
@@ -143,7 +149,7 @@ class ANN(object):
     def summary(self):
        print "\nNetwork Summary: "
        for l, layer in enumerate(self.arch):
-           print "Layer #", l, ": Size ", layer.get_size(), "with ", layer.get_func(), " activation"
+           print "Layer #", l, ": Size ", layer.get_size(), "using ", layer.get_func(), " activation", " with dropout of ", layer.get_dropout(False)
 
     def cost_function(self, a, y, reg, m):
         R = ( reg / 2) * np.sum(self.get_weights()**2)

@@ -2,7 +2,7 @@ import numpy as np
 from Activation import Activation
 
 class Layer(object):
-    def __init__(self, uid, units, W, bias, function):
+    def __init__(self, uid, units, W, bias, function, dropout = 1):
         self.id = uid
         self.units = units 
         self.W = W
@@ -11,6 +11,8 @@ class Layer(object):
         self.ac = Activation()
         self.m = self.v = 0
         self.mb = self.vb = 0
+        self.drop = dropout
+        self.dropout = np.random.binomial(1, dropout, size=self.units).reshape(self.units,1)
 
     def get_weights(self):
         return self.W
@@ -45,6 +47,15 @@ class Layer(object):
     
     def get_inputs(self):
         return self.z
+
+    def set_dropout(self):
+        self.dropout = np.random.binomial(1, self.drop, size=self.units).reshape(self.units,1)
+
+    def get_dropout(self, training = True):
+        if(training):
+            return self.dropout 
+        else:
+            return self.drop
     
     def fire(self, z):
         return self.ac.fire(z, self.activation)

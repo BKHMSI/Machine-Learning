@@ -26,6 +26,12 @@ class Activation(object):
     def relu_gradient(self, x):
         return (x > 0)
 
+    def leaky_relu(self, x):
+        return np.maximum(0.1*x, x)
+
+    def elu(self, x):
+        return np.maximum(np.exp(x) - 1, x)
+
     def tanh(self, x):
         return np.tanh(x)
     
