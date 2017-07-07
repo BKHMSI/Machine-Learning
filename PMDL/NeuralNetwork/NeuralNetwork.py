@@ -1,6 +1,7 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from Layer import Layer
-from Preprocessing import ImageProcessing
+from Preprocessing import ImageProcessing, PCA
 
 class ANN(object):
     def __init__(self):
@@ -36,7 +37,7 @@ class ANN(object):
         # store gradients: dw and db 
         self.arch[num_layers].set_gradients(dw, delta)
 
-        for i in xrange(num_layers-1,0,-1):
+        for i in range(num_layers-1,0,-1):
 
             next_layer = self.arch[i+1]
             layer = self.arch[i]
@@ -95,38 +96,55 @@ class ANN(object):
 
     def train(self, X, y, reg = 0, epochs = 10, batch_size = 32, lr = 0.01, 
               beta1 = 0.9, beta2 = 0.999, update_method = 'momentum', 
-              validation_split = 0.1, verbose = 1):
+              validation_split = 0.1, verbose = 1, pca = None):
 
         self.Xtr, self.ytr, Xval, yval = self.split_data(validation_split,X,y)
         self.num_classes = np.unique(y).shape[0]
 
         augment = ImageProcessing()
-        
+
         m = self.Xtr.shape[0] # of training examples
         n = self.Xtr.shape[1] # of features
-        batches = m / batch_size
+        batches = int(m / batch_size)
         val_size = Xval.shape[0]
 
-        for i in xrange(epochs):
+        Xval = pca.process(Xval)
+
+        # Store data for plotting
+        self.val_loss = []
+        self.val_acc = []
+        self.train_loss = []
+        self.train_acc = []	
+	
+        for i in range(epochs):
+
+            Xtr = pca.process(self.Xtr)
+
+            # Validation Pass
+            probs = self.feed_forward(Xval)
+            vloss = self.cost_function(probs.T, yval, reg, val_size)
+            vacc = self.accuracy(Xval, yval)
+
+            # Training Pass
+            probs = self.feed_forward(Xtr,True)
+            tloss = self.cost_function(probs.T, self.ytr, reg, m)
+            tacc = self.accuracy(Xtr, self.ytr)
             if(verbose):
-                print "\nEpoch #", i+1
+                print ("\nEpoch #", i+1)
+                print ("val_loss: ", vloss, " | val_acc: ", vacc)
+                print( "train_loss: ", tloss, " | train_acc: ",  tacc)
 
-                # Validation Pass
-                probs = self.feed_forward(Xval)
-                vloss = self.cost_function(probs.T, yval, reg, val_size)
-                vacc = self.accuracy(Xval, yval)
-                print "val_loss: ", vloss, " | val_acc: ", vacc
+            self.val_loss.append(vloss)
+            self.val_acc.append(vacc)
+            self.train_loss.append(tloss)
+            self.train_acc.append(tacc)
 
-                # Training Pass
-                probs = self.feed_forward(self.Xtr,True)
-                tloss = self.cost_function(probs.T, self.ytr, reg, m)
-                tacc = self.accuracy(self.Xtr, self.ytr)
-                print "train_loss: ", tloss, " | train_acc: ",  tacc
 
             option = np.random.randint(5)
             X_aug = augment.augment_image(self.Xtr,option)
+            X_aug = pca.process(X_aug)
 
-            for j in xrange(batches):
+            for j in range(batches):
                 xtr, ytr = self.get_batch(j, batch_size, X_aug) 
                 # Feed Forward
                 out = self.feed_forward(xtr,True)
@@ -135,11 +153,40 @@ class ANN(object):
                 # Update Weights
                 for layer in self.arch[1:]:
                     layer.update_weights(lr, reg, batch_size, method=update_method)
+	
+        w1 = self.arch[1].get_weights()
+        w2 = self.arch[2].get_weights()
+        b1 = self.arch[1].get_bias()
+        b2 = self.arch[2].get_bias()
+
+        np.savetxt('Results/Weights1.txt',w1)
+        np.savetxt('Results/Weights2.txt',w2)
+        np.savetxt('Results/Biases1.txt',b1)
+        np.savetxt('Results/Biases2.txt',b2)
+        np.savetxt('Results/ValLoss.txt',self.val_loss)
+        np.savetxt('Results/TrainLoss.txt',self.train_loss)
 
     def predict(self, x):
         probs = self.feed_forward(x)
         return np.argmax(probs, axis=0)
 
+    def show_plot(self, epochs):
+        epoch_axis = np.arange(epochs)
+        plt.plot(epoch_axis,self.val_loss,'xr-')
+        plt.plot(epoch_axis,self.train_loss,'xb-')
+        plt.show()
+
+    def load_weights(self):
+        b1 = np.loadtxt('Results/Biases1.txt')
+        b2 = np.loadtxt('Results/Biases2.txt')
+        w1 = np.loadtxt('Results/Weights1.txt')
+        w2 = np.loadtxt('Results/Weights2.txt')
+        print ("Weights Loaded")
+        self.arch[1].set_weights(w1)
+        self.arch[2].set_weights(w2)
+        self.arch[1].set_bias(b1)
+        self.arch[2].set_bias(b2)
+   
     def accuracy(self, x, Y):
         y_pred = self.predict(x)
         y = np.argmax(Y,axis=1) 
@@ -147,9 +194,9 @@ class ANN(object):
         return float(num_correct) / Y.shape[0]
 
     def summary(self):
-       print "\nNetwork Summary: "
+       print ("\nNetwork Summary: ")
        for l, layer in enumerate(self.arch):
-           print "Layer #", l, ": Size ", layer.get_size(), "using ", layer.get_func(), " activation", " with dropout of ", layer.get_dropout(False)
+           print ("Layer #", l, ": Size ", layer.get_size(), "using ", layer.get_func(), " activation", " with dropout of ", layer.get_dropout(False))
 
     def cost_function(self, a, y, reg, m):
         R = ( reg / 2) * np.sum(self.get_weights()**2)

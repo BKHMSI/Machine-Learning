@@ -39,7 +39,7 @@ class ImageProcessing(object):
             0: self.original,
             1: self.original,
             2: self.flip_h,
-            3: self.flip_v,
+            3: self.flip_h,
             4: self.shift_img
         }
         return augment[seed](X)
@@ -50,24 +50,28 @@ class ImageProcessing(object):
     def rotate(self, X):
         X_rotate = self.to_cifar10_2d(X)
         deg = np.random.randint(10)
+        print ("Rotating by ", deg, " degrees")
         for i, x in enumerate(X_rotate):
             X_rotate[i] = scipy.misc.imrotate(x,deg)
         return self.to_cifar10_1d(X_rotate)
     
     def shift_img(self, X):
         X_shift = self.to_cifar10_2d(X)
-        s = np.random.randint(2)
+        s = np.random.randint(1,2)
+        print ("Shifting by ", s, " pixels")
         X_shift = np.roll(X_shift,s,axis=2)
         #X_shift = shift(X_shift,[0,s*v,s*h,0])
         return self.to_cifar10_1d(X_shift)
 
     def flip_h(self, X):
+        print( "Fliping Horizontally")
         X_flip = self.to_cifar10_2d(X)
         for i, x in enumerate(X_flip):
             X_flip[i] = np.fliplr(x)
         return self.to_cifar10_1d(X_flip)
     
     def flip_v(self, X):
+        print ("Fliping Vertically")
         X_flip = self.to_cifar10_2d(X)
         for i, x in enumerate(X_flip):
             X_flip[i] = np.flipud(x)

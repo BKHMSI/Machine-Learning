@@ -23,6 +23,9 @@ class Layer(object):
     def get_bias(self):
         return self.bias
 
+    def set_bias(self, b):
+        self.bias = b
+
     def get_size(self):
         return self.units
 

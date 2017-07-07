@@ -38,6 +38,7 @@ class Activation(object):
     def tanh_gradient(self, x):
         return 1 - np.tanh(x)**2
 
+
     def gradient(self, x, activation):
         if(activation == 'relu'):
             return self.relu_gradient(x)
@@ -46,6 +47,8 @@ class Activation(object):
         elif(activation == 'tanh'):
              return self.tanh_gradient(x)
         elif(activation == 'softmax'):
+             return 1
+        elif(activation == 'linear'):
              return 1
 
     def fire(self, x, activation):
@@ -57,3 +60,5 @@ class Activation(object):
              return self.tanh(x)
         elif(activation == 'softmax'):
              return self.softmax(x)
+        elif(activation == 'linear'):
+             return x
